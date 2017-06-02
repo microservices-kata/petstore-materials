@@ -149,8 +149,59 @@ docker run -d --name mysql \
        mysql
 ```
 
-Service run on `3306` port on the host, with user `root` password `root`.
+Service run on `3306` port on the host, with user `root` password `root`. Test connection:
+
+```
+docker run -it --rm --network=host mysql \
+       sh -c 'exec mysql -h127.0.0.1 -P3306 -uroot -proot'
+```
 
 ## Kafka
 
-TBD.
+Firstly, run a zookeeper service instance:
+
+```
+docker network create kafka-net
+docker run -d --name zookeeper \
+		--network kafka-net zookeeper:3.4
+```
+
+Then start up kafka service:
+
+```
+docker run -d --name kafka \
+		--network kafka-net \
+		-p 9092:9092 \
+		--env ZOOKEEPER_IP=zookeeper \
+		ches/kafka
+```
+
+Zookeeper run on `2181` port and kafka run on `9092` port on the host.
+
+Create new topic:
+
+```
+docker run --rm --network kafka-net \
+		ches/kafka \
+	   		kafka-topics.sh --create --topic test \
+	   		--replication-factor 1 --partitions 1 \
+	   		--zookeeper zookeeper:2181
+```
+
+Make some message:
+
+```
+docker run --rm --interactive --network kafka-net \
+		ches/kafka \
+		   kafka-console-producer.sh --topic test \
+		   --broker-list kafka:9092
+```
+
+Consum the message in queue:
+
+```
+docker run --rm --interactive --network kafka-net \
+		ches/kafka \
+		   kafka-console-producer.sh --topic test \
+		   --broker-list kafka:9092
+```
