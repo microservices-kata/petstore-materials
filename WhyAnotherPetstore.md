@@ -30,7 +30,15 @@ An `API Contract` usually contains which APIs have been used and what kind of re
 
 Usually pact verify should be setup as part of continuous delivery pipeline.
 
-**3. MicroService & Distribution**
+**3. Continuous Integration / Continuous Delivery**
 
-Distributed transaction and Eventual consistency. You know it : )
+Micro services without pipeline must run into a mess, contract test should be triggered whenever a code is commited. Besides, code static checking, unit test and integration test are also highly recommended.
 
+**4. Distribution & Scalability**
+
+- Distributed transaction / Eventual consistency
+- Stateless: all persistent data should be kept out side from application's local memory
+
+Conside them in the first place, then you would stay away from troubles.
+
+And finally, wish you a happy hacking : )
