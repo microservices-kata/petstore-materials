@@ -27,6 +27,10 @@ This service should be setup first, before any other ones below.
 Before comamnd would setup a minimum docker container image registry, without Web UI.
 
 ```
+$ docker pull registry:2
+```
+
+```
 $ docker run -d -p 5000:5000 --name registry \
        -v /opt/registry_data:/var/lib/registry \
        --restart always \
