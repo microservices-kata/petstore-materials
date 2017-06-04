@@ -28,11 +28,15 @@ Before comamnd would setup a minimum docker container image registry, without We
 
 ```
 $ docker run -d -p --name registry \
-       --restart always --network=host \
-       registry:2
+         -v /opt/registry_data:/var/lib/registry \
+         --restart always -p 5000:5000 \
+         registry:2
 ```
 
-You may also want to add `-v /opt/registry_data:/var/lib/registry` parameter to expose the data folder to host via container volumn. Jenkins will listen on `5000` port of the host by default.
+> For Mac docker user: <br>
+> You may have to change `-v /opt/registry_data:/var/lib/registry` parameter to something like `-v ${HOME}/registry_data:/var/lib/registry` to avoid the permission issue, or you could follow [the docs](https://docs.docker.com/docker-for-mac/troubleshoot/#volume-mounting-requires-file-sharing-for-any-project-directories-outside-of-users) to allow docker to mount in the `/opt` folder.
+
+Registry will listen on `5000` port of the host.
 
 The service run on `http` protocol by default, which is not trusted by docker. So an explicit `--insecure-registry` paramter is needed on `dockerd` service.
 
@@ -49,13 +53,17 @@ Open source delivery pipeline dashboard. You could start its container via docke
 
 ```
 $ docker run -dt --name jenkins \
-       --network=host \
-       --restart always \
-       -e JENKINS_OPTS="--httpPort=8000" \
-       jenkinsci/jenkins
+         -v /opt/jenkins_data:/var/jenkins_home \
+         --network=host \
+         --restart always \
+         -e JENKINS_OPTS="--httpPort=8000" \
+         jenkinsci/jenkins
 ```
 
-You may also want to add `-v /opt/jenkins_data:/var/jenkins_home` parameter to expose the data folder to host via container volumn. Jenkins will listen on `8000` port of the host.
+> For Mac docker user: <br>
+> You may have to change `-v /opt/jenkins_data:/var/jenkins_home` parameter to something like `-v ${HOME}/jenkins_data:/var/jenkins_home` to avoid the permission issue, or you could follow [the docs](https://docs.docker.com/docker-for-mac/troubleshoot/#volume-mounting-requires-file-sharing-for-any-project-directories-outside-of-users) to allow docker to mount in the `/opt` folder.
+
+Jenkins will listen on `8000` port of the host.
 
 Prepare a machine with `java`, `maven`, `docker` and `git` installed, then add it to jenkins as a slave node with tag `microservice`.
 
@@ -71,11 +79,11 @@ Below installation step is original recorded [here](https://github.com/DiUS/pact
 
 ```
 $ docker run -d --name pactbroker-db \
-       -e POSTGRES_PASSWORD=ThePostgresPassword \
-       -e POSTGRES_USER=admin \
-       -e PGDATA=/data/pgdata \
-       -v /opt/postgresql:/data \
-       postgres
+         -e POSTGRES_PASSWORD=ThePostgresPassword \
+         -e POSTGRES_USER=admin \
+         -e PGDATA=/data/pgdata \
+         -v /opt/postgresql:/data \
+         postgres
 ```
 
 - 2. create pactbroker database
@@ -141,18 +149,18 @@ Service run on `27017` port on the host, with user `root` password `root`.
 Relational database service.
 
 ```
-docker run -d --name mysql \
-       -v /opt/mysql:/var/lib/mysql \
-       --network=host \
-       -e MYSQL_ROOT_PASSWORD=root \
-       mysql
+$ docker run -d --name mysql \
+         -v /opt/mysql:/var/lib/mysql \
+         -p 3306:3306 \
+         -e MYSQL_ROOT_PASSWORD=root \
+         mysql
 ```
 
 Service run on `3306` port on the host, with user `root` password `root`. Test connection:
 
 ```
-docker run -it --rm --network=host mysql \
-       sh -c 'exec mysql -h127.0.0.1 -P3306 -uroot -proot'
+$ docker run -it --rm --network=host mysql \
+         sh -c 'exec mysql -h127.0.0.1 -P3306 -uroot -proot'
 ```
 
 ## Kafka
@@ -160,19 +168,19 @@ docker run -it --rm --network=host mysql \
 Firstly, run a zookeeper service instance:
 
 ```
-docker network create kafka-net
-docker run -d --name zookeeper \
-        --network kafka-net zookeeper:3.4
+$ docker network create kafka-net
+$ docker run -d --name zookeeper \
+         --network kafka-net zookeeper:3.4
 ```
 
 Then start up kafka service:
 
 ```
-docker run -d --name kafka \
-        --network kafka-net \
-        -p 9092:9092 \
-        --env ZOOKEEPER_IP=zookeeper \
-        ches/kafka
+$ docker run -d --name kafka \
+         --network kafka-net \
+         -p 9092:9092 \
+         --env ZOOKEEPER_IP=zookeeper \
+         ches/kafka
 ```
 
 Zookeeper run on `2181` port and kafka run on `9092` port on the host.
@@ -180,37 +188,34 @@ Zookeeper run on `2181` port and kafka run on `9092` port on the host.
 Create new topic:
 
 ```
-docker run --rm --network kafka-net \
-        ches/kafka \
-            kafka-topics.sh --create --topic test \
-            --replication-factor 1 --partitions 1 \
-            --zookeeper zookeeper:2181
+$ docker run --rm --network kafka-net ches/kafka \
+             kafka-topics.sh --create --topic test \
+             --replication-factor 1 --partitions 1 \
+             --zookeeper zookeeper:2181
 ```
 
 Make some message:
 
 ```
-docker run --rm --interactive --network kafka-net \
-        ches/kafka \
-           kafka-console-producer.sh --topic test \
-           --broker-list kafka:9092
+$ docker run --rm -i --network kafka-net ches/kafka \
+             kafka-console-producer.sh --topic test \
+             --broker-list kafka:9092
 ```
 
 Consum the message in queue:
 
 ```
-docker run --rm --interactive --network kafka-net \
-        ches/kafka \
-           kafka-console-producer.sh --topic test \
-           --broker-list kafka:9092
+$ docker run --rm -i --network kafka-net ches/kafka \
+             kafka-console-producer.sh --topic test \
+             --broker-list kafka:9092
 ```
 
 Yahoo's [kafka-manager](https://github.com/yahoo/kafka-manager) could be useful for tracing MQ issues.
 
 ```
-docker run -dt ---network kafka-net \
-           -p 9000:9000 \
-           -e ZK_HOSTS="zookeeper:2181" \
-           -e APPLICATION_SECRET=letmein \
-           sheepkiller/kafka-manager
+$ docker run -dt ---network kafka-net \
+         -p 9000:9000 \
+         -e ZK_HOSTS="zookeeper:2181" \
+         -e APPLICATION_SECRET=letmein \
+         sheepkiller/kafka-manager
 ```
