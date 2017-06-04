@@ -27,21 +27,17 @@ This service should be setup first, before any other ones below.
 Before comamnd would setup a minimum docker container image registry, without Web UI.
 
 ```
-$ docker pull registry:2
-```
-
-```
-$ docker run -d -p 5000:5000 --name registry \
-       -v /opt/registry_data:/var/lib/registry \
-       --restart always \
+$ docker run -d -p --name registry \
+       --restart always --network=host \
        registry:2
 ```
+
+You may also want to add `-v /opt/registry_data:/var/lib/registry` parameter to expose the data folder to host via container volumn. Jenkins will listen on `5000` port of the host by default.
 
 The service run on `http` protocol by default, which is not trusted by docker. So an explicit `--insecure-registry` paramter is needed on `dockerd` service.
 
 ```
-$ sudo sed -i 's#/usr/bin/dockerd#/usr/bin/dockerd \
-       --insecure-registry 10.71.84.160:5000#' \
+$ sudo sed -i 's#/usr/bin/dockerd#/usr/bin/dockerd --insecure-registry 10.71.84.160:5000#' \
        /lib/systemd/system/docker.service
 $ sudo systemctl daemon-reload
 $ sudo systemctl restart docker
@@ -56,11 +52,10 @@ $ docker run -dt --name jenkins \
        --network=host \
        --restart always \
        -e JENKINS_OPTS="--httpPort=8000" \
-       -v /opt/jenkins_data:/var/jenkins_home \
        jenkinsci/jenkins
 ```
 
-Service run on `8000` port on the host.
+You may also want to add `-v /opt/jenkins_data:/var/jenkins_home` parameter to expose the data folder to host via container volumn. Jenkins will listen on `8000` port of the host.
 
 Prepare a machine with `java`, `maven`, `docker` and `git` installed, then add it to jenkins as a slave node with tag `microservice`.
 
@@ -167,17 +162,17 @@ Firstly, run a zookeeper service instance:
 ```
 docker network create kafka-net
 docker run -d --name zookeeper \
-		--network kafka-net zookeeper:3.4
+        --network kafka-net zookeeper:3.4
 ```
 
 Then start up kafka service:
 
 ```
 docker run -d --name kafka \
-		--network kafka-net \
-		-p 9092:9092 \
-		--env ZOOKEEPER_IP=zookeeper \
-		ches/kafka
+        --network kafka-net \
+        -p 9092:9092 \
+        --env ZOOKEEPER_IP=zookeeper \
+        ches/kafka
 ```
 
 Zookeeper run on `2181` port and kafka run on `9092` port on the host.
@@ -186,26 +181,36 @@ Create new topic:
 
 ```
 docker run --rm --network kafka-net \
-		ches/kafka \
-	   		kafka-topics.sh --create --topic test \
-	   		--replication-factor 1 --partitions 1 \
-	   		--zookeeper zookeeper:2181
+        ches/kafka \
+            kafka-topics.sh --create --topic test \
+            --replication-factor 1 --partitions 1 \
+            --zookeeper zookeeper:2181
 ```
 
 Make some message:
 
 ```
 docker run --rm --interactive --network kafka-net \
-		ches/kafka \
-		   kafka-console-producer.sh --topic test \
-		   --broker-list kafka:9092
+        ches/kafka \
+           kafka-console-producer.sh --topic test \
+           --broker-list kafka:9092
 ```
 
 Consum the message in queue:
 
 ```
 docker run --rm --interactive --network kafka-net \
-		ches/kafka \
-		   kafka-console-producer.sh --topic test \
-		   --broker-list kafka:9092
+        ches/kafka \
+           kafka-console-producer.sh --topic test \
+           --broker-list kafka:9092
+```
+
+Yahoo's [kafka-manager](https://github.com/yahoo/kafka-manager) could be useful for tracing MQ issues.
+
+```
+docker run -dt ---network kafka-net \
+           -p 9000:9000 \
+           -e ZK_HOSTS="zookeeper:2181" \
+           -e APPLICATION_SECRET=letmein \
+           sheepkiller/kafka-manager
 ```
