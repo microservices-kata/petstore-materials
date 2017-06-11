@@ -6,7 +6,7 @@
 
 ## Why petstore again
 
-In this ms kata material, we'll like to setup a mini demo of MicroService Architecture, aim to clarify basic concept of ms: how it looks like, how it works, what's the benefit and common drawback, etc. And just as expected, we reused the petstore topic.
+In this kata material, we'll like to setup a mini demo of the [Microservices Architecture](https://www.martinfowler.com/articles/microservices.html), aim to clarify basic concept of mircoservice: how it looks like, how it works, what's the benefit and common drawback, etc. And just as expected, we reused the petstore topic.
 
 The coding part of this project won't be challenge at all: none of the service have complicate business logic nor hard algorithm. However, below are the things that you may need to focus on:
 
