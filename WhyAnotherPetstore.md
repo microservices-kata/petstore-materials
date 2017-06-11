@@ -16,7 +16,7 @@ Service design have never been an easy thing, especially when it come to the cas
 
 A explain of current service partition:
 
-- *User Service*: should be as universal as possible, it may be used in other system in the same organization.
+- *Account Service*: should be as universal as possible, it may be used in other system in the same organization.
 - *Order Service*: business related, but still can be somehow universal, may contains other kind of order beside pet.
 - *Inventory Service*: business related, it keep the possible category of pet, pet shops and pets information.
 - *Web BFF*: a composite service, provide as easy-to-use as possible APIs for web page.
